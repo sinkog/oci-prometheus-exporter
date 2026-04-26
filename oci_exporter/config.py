@@ -42,20 +42,26 @@ class Config:
         return sum(len(ns.metrics) for ns in self.namespaces) * len(self.compartment_ids)
 
 
+def _get(raw: dict, snake: str, camel: str, default=None):
+    """Look up a config key by snake_case (canonical) then camelCase (legacy alias)."""
+    v = raw.get(snake)
+    return v if v is not None else raw.get(camel, default)
+
+
 def load(path: str = "/etc/oci-exporter/config.yaml") -> Config:
     with open(path) as fh:
         raw = yaml.safe_load(fh)
 
     errors: list[str] = []
 
-    # backward compat: compartmentId → compartmentIds
-    if "compartmentId" in raw and "compartmentIds" not in raw:
+    # Accept snake_case (canonical), camelCase (legacy), and singular compartmentId
+    if "compartmentId" in raw and "compartment_ids" not in raw and "compartmentIds" not in raw:
         compartment_ids = [raw["compartmentId"]]
     else:
-        compartment_ids = raw.get("compartmentIds") or []
+        compartment_ids = _get(raw, "compartment_ids", "compartmentIds") or []
 
     if not compartment_ids:
-        errors.append("compartmentId or compartmentIds is required")
+        errors.append("compartment_ids (or compartmentIds) is required")
 
     region = raw.get("region", "")
     if not region:
@@ -77,7 +83,7 @@ def load(path: str = "/etc/oci-exporter/config.yaml") -> Config:
         sys.exit(1)
 
     auth_raw = raw.get("auth", {})
-    freq = int(raw.get("metricsPollingFrequencyInSeconds", 60))
+    freq = int(_get(raw, "polling_frequency_seconds", "metricsPollingFrequencyInSeconds", 60))
 
     cfg = Config(
         compartment_ids=tuple(compartment_ids),
@@ -85,7 +91,7 @@ def load(path: str = "/etc/oci-exporter/config.yaml") -> Config:
         namespaces=tuple(namespaces),
         auth=AuthConfig(type=auth_raw.get("type", "InstancePrincipal")),
         polling_frequency_seconds=freq,
-        telemetry_endpoint=raw.get("telemetryEndpoint"),
+        telemetry_endpoint=_get(raw, "telemetry_endpoint", "telemetryEndpoint"),
     )
 
     if cfg.total_queries > 0 and freq < cfg.total_queries:

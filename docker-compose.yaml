@@ -1,0 +1,14 @@
+services:
+  builder:
+    image: python@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
+    working_dir: /src
+    volumes:
+      - .:/src:ro
+      - /src/.venv  # isolate venv from host mount
+    command: ["true"]
+    environment:
+      PIP_NO_CACHE_DIR: "1"
+      RUFF_CACHE_DIR: "/tmp/ruff-cache"
+      COVERAGE_FILE: "/tmp/.coverage"
+      PYTEST_ADDOPTS: "--override-ini=cache_dir=/tmp/pytest-cache"
+    entrypoint: ["sh", "-c", "pip install -q -e '.[dev]' && exec \"$@\"", "--"]

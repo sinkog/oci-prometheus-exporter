@@ -3,6 +3,16 @@
 Prometheus exporter for [Oracle Cloud Infrastructure (OCI)](https://www.oracle.com/cloud/) metrics.
 Queries the [OCI Monitoring API](https://docs.oracle.com/en-us/iaas/api/#/en/monitoring/20180401/) and exposes the results as Prometheus gauges.
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/configuration.md](docs/configuration.md) | Full config.yaml reference — all fields, auth modes, rate limiting |
+| [docs/cli.md](docs/cli.md) | CLI flags — `--validate`, `--generate-config` |
+| [docs/metrics.md](docs/metrics.md) | HTTP endpoints, self-metrics, label structure |
+| [docs/oci-namespaces.md](docs/oci-namespaces.md) | OCI namespace/metric reference, provider-side vs agent-side, known gaps |
+| [docs/deployment.md](docs/deployment.md) | Kubernetes/OKE deployment, IAM setup, Docker |
+
 ## Features
 
 - Multi-compartment scraping
@@ -37,7 +47,7 @@ Copy `config.example.yaml` and adjust:
 
 ```yaml
 compartmentIds:
-  - "ocid1.tenancy.oc1..example"
+  - "ocid1.compartment.oc1..example"  # list compartments to scrape explicitly
 
 region: "eu-frankfurt-2"
 
@@ -74,14 +84,24 @@ docker run --rm \
 
 ### Kubernetes
 
-```bash
-kubectl apply -f k8s/monitoring/oci-exporter/
-```
+Deploy a `ConfigMap` with your `config.yaml`, a `Deployment` referencing the image, and a `Service` + `ServiceMonitor` for Prometheus scraping.
 
-Required Kubernetes resources (see `k8s/` in the consuming repo):
-- `ConfigMap` with `config.yaml`
-- `Deployment` with `imagePullSecrets` pointing to your OCI Container Registry
-- `Service` + `ServiceMonitor` for Prometheus scraping
+Minimal `Deployment` snippet:
+
+```yaml
+containers:
+  - name: oci-exporter
+    image: <your-registry>/oci-prometheus-exporter:latest
+    args: ["--config", "/etc/oci-exporter/config.yaml", "--port", "9090"]
+    volumeMounts:
+      - name: config
+        mountPath: /etc/oci-exporter
+        readOnly: true
+volumes:
+  - name: config
+    configMap:
+      name: oci-exporter-config
+```
 
 ### IAM (InstancePrincipal)
 

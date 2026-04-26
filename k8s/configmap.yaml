@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oci-exporter-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    # Replace with your compartment or tenancy OCID
+    compartment_ids:
+      - "ocid1.tenancy.oc1..example"
+
+    region: "eu-frankfurt-2"
+
+    auth:
+      type: InstancePrincipal
+
+    polling_frequency_seconds: 60
+
+    # Uncomment for OC19 / sovereign cloud regions
+    # telemetry_endpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
+
+    namespaces:
+      - name: oci_compute_infrastructure_health
+        metrics:
+          - name: instance_status
+            query: "instance_status[1m].mean()"
+          - name: maintenance_status
+            query: "maintenance_status[1m].mean()"
+
+      - name: oci_vcn
+        metrics:
+          - name: vnic_bytes_in
+            query: "VnicFromNetworkBytes[1m].sum()"
+          - name: vnic_bytes_out
+            query: "VnicToNetworkBytes[1m].sum()"
+          - name: vnic_packets_in
+            query: "VnicFromNetworkPackets[1m].sum()"
+          - name: vnic_packets_out
+            query: "VnicToNetworkPackets[1m].sum()"
+          - name: vnic_ingress_drops_throttle
+            query: "VnicIngressDropsThrottle[1m].sum()"
+          - name: vnic_egress_drops_throttle
+            query: "VnicEgressDropsThrottle[1m].sum()"
+          - name: vnic_ingress_drops_security_list
+            query: "VnicIngressDropsSecurityList[1m].sum()"
+          - name: vnic_egress_drops_security_list
+            query: "VnicEgressDropsSecurityList[1m].sum()"
+          - name: vnic_conntrack_util_percent
+            query: "VnicConntrackUtilPercent[1m].mean()"
+
+      - name: oci_blockstore
+        metrics:
+          - name: volume_read_ops
+            query: "VolumeReadOps[1m].sum()"
+          - name: volume_write_ops
+            query: "VolumeWriteOps[1m].sum()"
+          - name: volume_read_throughput
+            query: "VolumeReadThroughput[1m].mean()"
+          - name: volume_write_throughput
+            query: "VolumeWriteThroughput[1m].mean()"
+          - name: volume_throttled_ios
+            query: "VolumeThrottledIOs[1m].sum()"

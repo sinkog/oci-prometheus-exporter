@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oci-exporter
+  namespace: monitoring
+  labels:
+    app: oci-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oci-exporter
+  template:
+    metadata:
+      labels:
+        app: oci-exporter
+    spec:
+      serviceAccountName: oci-exporter
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: oci-exporter
+          image: <your-registry>/oci-prometheus-exporter:latest
+          args:
+            - --config=/etc/oci-exporter/config.yaml
+            - --port=9090
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /etc/oci-exporter
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: oci-exporter-config

@@ -2,7 +2,7 @@
 
 # One or more OCI compartment OCIDs to scrape.
 # Use the tenancy OCID to cover all resources.
-compartmentIds:
+compartment_ids:
   - "ocid1.tenancy.oc1..example"
   # - "ocid1.compartment.oc1..example"   # additional compartments
 
@@ -16,11 +16,11 @@ auth:
 
 # How often to poll OCI Monitoring (seconds).
 # Rule of thumb: >= number of total metric queries across all namespaces × compartments.
-metricsPollingFrequencyInSeconds: 60
+polling_frequency_seconds: 60
 
 # Optional: override the OCI Monitoring telemetry endpoint.
 # Needed for dedicated / sovereign cloud regions (OC2, OC3, OC19 …).
-# telemetryEndpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
+# telemetry_endpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
 
 namespaces:
   - name: oci_computeagent

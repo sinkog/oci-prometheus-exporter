@@ -88,6 +88,10 @@ class Collector:
         self._client = build_client(cfg)
         self._last_seen: dict[tuple[str, str, str, str], float] = {}
 
+    @property
+    def polling_frequency(self) -> float:
+        return self._cfg.polling_frequency_seconds
+
     def poll(self) -> bool:
         """Run one full poll cycle. Returns True if no errors occurred."""
         cfg = self._cfg
@@ -122,7 +126,8 @@ class Collector:
                                 compartment_id=compartment_id,
                                 resource_id=resource_id,
                             ).set(val)
-                            self._last_seen[(ns_cfg.name, metric.name, compartment_id, resource_id)] = now
+                            key = (ns_cfg.name, metric.name, compartment_id, resource_id)
+                            self._last_seen[key] = now
                     except Exception as exc:
                         had_error = True
                         m.errors_total.labels(
@@ -153,3 +158,109 @@ class Collector:
                 "Removed stale label: %s/%s compartment=%s… resource=%s",
                 ns, metric_name, compartment_id[:20], resource_id,
             )
+
+
+# Substring hints for choosing sum() vs mean() in generated MQL queries.
+# Gauge hints take priority — e.g. "StoredBytes" is a capacity gauge, not a counter.
+_SUM_HINTS = frozenset({
+    "bytes", "ops", "packets", "requests", "drops", "throttled",
+    "handshake", "timeouts", "received", "sent", "processed",
+    "errors", "accepted", "closed", "new",
+})
+_GAUGE_HINTS = frozenset({
+    "active", "stored", "guaranteed", "percent", "util", "status",
+    "count", "healthy", "enabled", "full", "bandwidth", "latency",
+    "throughput",
+})
+
+
+def _default_query(metric_name: str) -> str:
+    """Return an MQL query with a sensible default aggregation for the metric."""
+    lower = metric_name.lower()
+    is_gauge = any(h in lower for h in _GAUGE_HINTS)
+    is_counter = any(h in lower for h in _SUM_HINTS)
+    agg = "mean" if (is_gauge or not is_counter) else "sum"
+    return f"{metric_name}[1m].{agg}()"
+
+
+def generate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> str:
+    """Discover all metrics via list_metrics and return a complete config YAML."""
+    import collections
+
+    import yaml
+
+    ns_metrics: dict[str, set[str]] = collections.defaultdict(set)
+    for compartment_id in cfg.compartment_ids:
+        resp = oci.pagination.list_call_get_all_results(
+            client.list_metrics,
+            compartment_id,
+            oci.monitoring.models.ListMetricsDetails(),
+        )
+        for item in resp.data:
+            ns_metrics[item.namespace].add(item.name)
+
+    namespaces = [
+        {
+            "name": ns_name,
+            "metrics": [
+                {"name": metric, "query": _default_query(metric)}
+                for metric in sorted(ns_metrics[ns_name])
+            ],
+        }
+        for ns_name in sorted(ns_metrics)
+    ]
+
+    config: dict = {
+        "compartment_ids": list(cfg.compartment_ids),
+        "region": cfg.region,
+        "polling_frequency_seconds": cfg.polling_frequency_seconds,
+        "auth": {"type": cfg.auth.type},
+        "namespaces": namespaces,
+    }
+    if cfg.telemetry_endpoint:
+        config["telemetry_endpoint"] = cfg.telemetry_endpoint
+
+    return yaml.dump(config, default_flow_style=False, sort_keys=False)
+
+
+def validate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> bool:
+    """Check every configured namespace/metric against the OCI list_metrics API.
+
+    Returns True if all metrics are confirmed present (or namespace is empty).
+    Prints a human-readable report to stdout.
+    """
+    all_ok = True
+    total_ok = total_missing = total_warn = 0
+
+    for compartment_id in cfg.compartment_ids:
+        print(f"\nCompartment: {compartment_id}")
+        for ns_cfg in cfg.namespaces:
+            print(f"  Namespace: {ns_cfg.name}")
+            try:
+                details = oci.monitoring.models.ListMetricsDetails(namespace=ns_cfg.name)
+                resp = oci.pagination.list_call_get_all_results(
+                    client.list_metrics, compartment_id, details
+                )
+                available = {item.name for item in resp.data}
+            except oci.exceptions.ServiceError as exc:
+                print(f"    [ERROR]   cannot query namespace: {exc.message}")
+                all_ok = False
+                continue
+
+            if not available:
+                print("    [WARN]    namespace appears empty (no active resources?)")
+
+            for metric in ns_cfg.metrics:
+                if metric.name in available:
+                    print(f"    [OK]      {metric.name}")
+                    total_ok += 1
+                elif not available:
+                    print(f"    [WARN]    {metric.name} (namespace empty, cannot verify)")
+                    total_warn += 1
+                else:
+                    print(f"    [MISSING] {metric.name}")
+                    total_missing += 1
+                    all_ok = False
+
+    print(f"\nResult: {total_ok} OK, {total_missing} MISSING, {total_warn} WARN")
+    return all_ok

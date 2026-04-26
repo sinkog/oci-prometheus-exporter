@@ -5,6 +5,7 @@
 - **`ai/activation.txt`** — thinking mode and priorities
 - **`context/CONTRACT.md`** — I/O contract and invariants (canonical truth)
 - **`ai/SELF_CHECKLIST.md`** — pre-change checklist
+- **`ai/ROADMAP.md`** — task backlog (fixes, features, status)
 
 ## Project layout
 
@@ -18,6 +19,7 @@ oci_exporter/       Python package
 ai/                 AI collaboration context
   activation.txt    Thinking mode + priorities
   SELF_CHECKLIST.md Pre-change checklist
+  ROADMAP.md        Task backlog (fixes, features, status)
 context/            Contracts and invariants
   CONTRACT.md       I/O contract and system invariants
 tools/              CentralInfraCore signing toolchain
@@ -38,11 +40,14 @@ pip install -e ".[dev]"
 ## Commands
 
 ```bash
-ruff check .          # lint
-pytest                # tests
-pytest --cov          # tests with coverage
-oci-exporter --config config.example.yaml   # run locally (ApiKey auth)
-docker build -t oci-prometheus-exporter:latest .
+make check            # lint + test — hermetic, pinned Python (CI judge)
+make lint             # ruff only (builder container)
+make test             # pytest only (builder container)
+make cov              # pytest with coverage report (builder container)
+make cov-check        # fail if coverage < COVERAGE_MIN (default 80%)
+make run              # run locally — only target requiring local Python + OCI creds
+make docker-build     # build production Docker image
+make clean            # remove build artifacts
 ```
 
 ## Commit signing

@@ -1,8 +1,9 @@
 """Tests for config loading and validation."""
 
 import textwrap
-import pytest
 from pathlib import Path
+
+import pytest
 
 from oci_exporter.config import load
 
@@ -78,6 +79,34 @@ def test_prom_name_sanitization():
     assert _prom_name("custom_ns", "my-metric") == "oci_custom_ns_my_metric"
     # special chars sanitized
     assert _prom_name("oci_ns", "value/rate") == "oci_ns_value_rate"
+
+
+def test_snake_case_keys_accepted(tmp_path):
+    path = _write(tmp_path, """
+        compartment_ids:
+          - ocid1.tenancy.oc1..example
+        region: eu-frankfurt-2
+        polling_frequency_seconds: 120
+        telemetry_endpoint: "https://telemetry.example.com"
+        namespaces: []
+    """)
+    cfg = load(path)
+    assert cfg.compartment_ids == ("ocid1.tenancy.oc1..example",)
+    assert cfg.polling_frequency_seconds == 120
+    assert cfg.telemetry_endpoint == "https://telemetry.example.com"
+
+
+def test_camel_case_keys_still_work(tmp_path):
+    path = _write(tmp_path, """
+        compartmentIds:
+          - ocid1.tenancy.oc1..example
+        region: eu-frankfurt-2
+        metricsPollingFrequencyInSeconds: 30
+        namespaces: []
+    """)
+    cfg = load(path)
+    assert cfg.compartment_ids == ("ocid1.tenancy.oc1..example",)
+    assert cfg.polling_frequency_seconds == 30
 
 
 def test_total_queries(tmp_path):
