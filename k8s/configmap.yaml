@@ -6,7 +6,7 @@ metadata:
 data:
   config.yaml: |
     # Replace with your compartment or tenancy OCID
-    compartmentIds:
+    compartment_ids:
       - "ocid1.tenancy.oc1..example"
 
     region: "eu-frankfurt-2"
@@ -14,10 +14,10 @@ data:
     auth:
       type: InstancePrincipal
 
-    metricsPollingFrequencyInSeconds: 60
+    polling_frequency_seconds: 60
 
     # Uncomment for OC19 / sovereign cloud regions
-    # telemetryEndpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
+    # telemetry_endpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
 
     namespaces:
       - name: oci_compute_infrastructure_health

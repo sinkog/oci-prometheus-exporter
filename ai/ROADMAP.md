@@ -18,6 +18,15 @@ Status: `pending` · `in_progress` · `done`
 
 ---
 
+## Bugs
+
+| # | Status | Title | File | Notes |
+|---|--------|-------|------|-------|
+| B1 | done | YAML config kulcsok következetlenség | `config.py`, `collector.py` | snake_case lett a canonical (`compartment_ids`, `polling_frequency_seconds`, `telemetry_endpoint`); camelCase backward compat alias-ként megmarad; `generate_config` snake_case-t ír ki |
+| B2 | done | `generate_config` mindenre `.mean()` aggr. | `collector.py` | `_default_query()` heurisztika: gauge hint (active, stored, status, percent…) → mean(); counter hint (bytes, ops, packets, drops…) → sum(); gauge hint prioritást élvez |
+
+---
+
 ## Features
 
 | # | Status | Title | Notes |

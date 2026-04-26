@@ -10,6 +10,7 @@ from oci_exporter.collector import (
     _RETRY_BASE,
     _STALE_CYCLES,
     Collector,
+    _default_query,
     _query_with_retry,
     build_client,
     generate_config,
@@ -441,19 +442,23 @@ class TestGenerateConfig:
         assert "oci_vcn" in ns_names
         assert "oci_blockstore" in ns_names
 
-    def test_metric_query_uses_mean(self):
+    def test_metric_query_uses_default_query(self):
         import yaml
 
         cfg = _make_config()
         client = MagicMock()
-        mock_fn = self._mock_discovery({"oci_vcn": ["VnicFromNetworkBytes"]})
+        # VnicFromNetworkBytes → bytes hint → sum(); instance_status → status hint → mean()
+        mock_fn = self._mock_discovery(
+            {"oci_vcn": ["VnicFromNetworkBytes"], "oci_infra": ["instance_status"]}
+        )
         with patch(
             "oci_exporter.collector.oci.pagination.list_call_get_all_results", mock_fn
         ):
             result = generate_config(cfg, client)
         parsed = yaml.safe_load(result)
-        ns = parsed["namespaces"][0]
-        assert ns["metrics"][0]["query"] == "VnicFromNetworkBytes[1m].mean()"
+        by_ns = {n["name"]: n["metrics"] for n in parsed["namespaces"]}
+        assert by_ns["oci_vcn"][0]["query"] == "VnicFromNetworkBytes[1m].sum()"
+        assert by_ns["oci_infra"][0]["query"] == "instance_status[1m].mean()"
 
     def test_compartment_ids_preserved(self):
         import yaml
@@ -466,4 +471,40 @@ class TestGenerateConfig:
         ):
             result = generate_config(cfg, client)
         parsed = yaml.safe_load(result)
-        assert parsed["compartmentIds"] == ["ocid1.tenancy.oc1..test"]
+        assert parsed["compartment_ids"] == ["ocid1.tenancy.oc1..test"]
+
+
+# ── _default_query ────────────────────────────────────────────────────────────
+
+class TestDefaultQuery:
+    def test_bytes_metric_uses_sum(self):
+        assert _default_query("VnicFromNetworkBytes") == "VnicFromNetworkBytes[1m].sum()"
+
+    def test_ops_metric_uses_sum(self):
+        assert _default_query("VolumeReadOps") == "VolumeReadOps[1m].sum()"
+
+    def test_packets_metric_uses_sum(self):
+        assert _default_query("VnicFromNetworkPackets") == "VnicFromNetworkPackets[1m].sum()"
+
+    def test_drops_metric_uses_sum(self):
+        assert _default_query("VnicIngressDropsThrottle") == "VnicIngressDropsThrottle[1m].sum()"
+
+    def test_status_metric_uses_mean(self):
+        assert _default_query("instance_status") == "instance_status[1m].mean()"
+
+    def test_util_percent_uses_mean(self):
+        assert _default_query("VnicConntrackUtilPercent") == "VnicConntrackUtilPercent[1m].mean()"
+
+    def test_active_connections_uses_mean(self):
+        # "active" gauge hint takes priority over "connections" not being a hint
+        assert _default_query("ActiveConnections") == "ActiveConnections[1m].mean()"
+
+    def test_stored_bytes_uses_mean(self):
+        # "stored" gauge hint takes priority over "bytes" counter hint
+        assert _default_query("StoredBytes") == "StoredBytes[1m].mean()"
+
+    def test_throughput_uses_mean(self):
+        assert _default_query("VolumeReadThroughput") == "VolumeReadThroughput[1m].mean()"
+
+    def test_unknown_metric_defaults_to_mean(self):
+        assert _default_query("SomeUnknownMetric") == "SomeUnknownMetric[1m].mean()"

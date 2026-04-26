@@ -160,6 +160,29 @@ class Collector:
             )
 
 
+# Substring hints for choosing sum() vs mean() in generated MQL queries.
+# Gauge hints take priority — e.g. "StoredBytes" is a capacity gauge, not a counter.
+_SUM_HINTS = frozenset({
+    "bytes", "ops", "packets", "requests", "drops", "throttled",
+    "handshake", "timeouts", "received", "sent", "processed",
+    "errors", "accepted", "closed", "new",
+})
+_GAUGE_HINTS = frozenset({
+    "active", "stored", "guaranteed", "percent", "util", "status",
+    "count", "healthy", "enabled", "full", "bandwidth", "latency",
+    "throughput",
+})
+
+
+def _default_query(metric_name: str) -> str:
+    """Return an MQL query with a sensible default aggregation for the metric."""
+    lower = metric_name.lower()
+    is_gauge = any(h in lower for h in _GAUGE_HINTS)
+    is_counter = any(h in lower for h in _SUM_HINTS)
+    agg = "mean" if (is_gauge or not is_counter) else "sum"
+    return f"{metric_name}[1m].{agg}()"
+
+
 def generate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> str:
     """Discover all metrics via list_metrics and return a complete config YAML."""
     import collections
@@ -180,7 +203,7 @@ def generate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> str
         {
             "name": ns_name,
             "metrics": [
-                {"name": metric, "query": f"{metric}[1m].mean()"}
+                {"name": metric, "query": _default_query(metric)}
                 for metric in sorted(ns_metrics[ns_name])
             ],
         }
@@ -188,14 +211,14 @@ def generate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> str
     ]
 
     config: dict = {
-        "compartmentIds": list(cfg.compartment_ids),
+        "compartment_ids": list(cfg.compartment_ids),
         "region": cfg.region,
-        "metricsPollingFrequencyInSeconds": cfg.polling_frequency_seconds,
+        "polling_frequency_seconds": cfg.polling_frequency_seconds,
         "auth": {"type": cfg.auth.type},
         "namespaces": namespaces,
     }
     if cfg.telemetry_endpoint:
-        config["telemetryEndpoint"] = cfg.telemetry_endpoint
+        config["telemetry_endpoint"] = cfg.telemetry_endpoint
 
     return yaml.dump(config, default_flow_style=False, sort_keys=False)
 

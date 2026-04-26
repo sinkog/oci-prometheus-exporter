@@ -6,17 +6,19 @@ Default: `/etc/oci-exporter/config.yaml`. Override with `--config PATH`.
 
 ## Fields
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `compartmentIds` | list[string] | yes | — | OCID(s) of compartments to scrape. Use the tenancy OCID to cover all resources. |
-| `region` | string | yes | — | OCI region identifier, e.g. `eu-frankfurt-2`. |
-| `auth.type` | string | no | `InstancePrincipal` | Auth method. See [Auth](#auth). |
-| `metricsPollingFrequencyInSeconds` | int | no | `60` | Poll interval in seconds. Must be ≥ total metric query count to avoid OCI rate limits. |
-| `telemetryEndpoint` | string | no | null | Override OCI Monitoring endpoint. Required for sovereign/dedicated cloud regions. |
-| `namespaces` | list | yes | — | Namespaces and metrics to collect. |
-| `namespaces[].name` | string | yes | — | OCI Monitoring namespace (e.g. `oci_computeagent`, `oci_vcn`). |
-| `namespaces[].metrics[].name` | string | yes | — | Logical metric name — used in the Prometheus metric name. |
-| `namespaces[].metrics[].query` | string | yes | — | MQL query string (e.g. `CpuUtilization[1m].mean()`). |
+Snake_case is the canonical format. CamelCase keys are accepted for backward compatibility.
+
+| Field (snake_case) | CamelCase alias | Type | Required | Default | Description |
+|--------------------|----------------|------|----------|---------|-------------|
+| `compartment_ids` | `compartmentIds` | list[string] | yes | — | OCID(s) of compartments to scrape. Use the tenancy OCID to cover all resources. |
+| `region` | — | string | yes | — | OCI region identifier, e.g. `eu-frankfurt-2`. |
+| `auth.type` | — | string | no | `InstancePrincipal` | Auth method. See [Auth](#auth). |
+| `polling_frequency_seconds` | `metricsPollingFrequencyInSeconds` | int | no | `60` | Poll interval in seconds. Must be ≥ total metric query count to avoid OCI rate limits. |
+| `telemetry_endpoint` | `telemetryEndpoint` | string | no | null | Override OCI Monitoring endpoint. Required for sovereign/dedicated cloud regions. |
+| `namespaces` | — | list | yes | — | Namespaces and metrics to collect. |
+| `namespaces[].name` | — | string | yes | — | OCI Monitoring namespace (e.g. `oci_computeagent`, `oci_vcn`). |
+| `namespaces[].metrics[].name` | — | string | yes | — | Logical metric name — used in the Prometheus metric name. |
+| `namespaces[].metrics[].query` | — | string | yes | — | MQL query string (e.g. `CpuUtilization[1m].mean()`). |
 
 ## Auth
 
@@ -60,7 +62,7 @@ The `namespaces[].metrics[].name` field controls only the Prometheus name suffix
 ## Complete example
 
 ```yaml
-compartmentIds:
+compartment_ids:
   - "ocid1.tenancy.oc1..example"
 
 region: "eu-frankfurt-2"
@@ -68,9 +70,9 @@ region: "eu-frankfurt-2"
 auth:
   type: InstancePrincipal
 
-metricsPollingFrequencyInSeconds: 60
+polling_frequency_seconds: 60
 
-# telemetryEndpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
+# telemetry_endpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
 
 namespaces:
   - name: oci_compute_infrastructure_health
