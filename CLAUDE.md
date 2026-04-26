@@ -5,6 +5,7 @@
 - **`ai/activation.txt`** — thinking mode and priorities
 - **`context/CONTRACT.md`** — I/O contract and invariants (canonical truth)
 - **`ai/SELF_CHECKLIST.md`** — pre-change checklist
+- **`ai/ROADMAP.md`** — task backlog (fixes, features, status)
 
 ## Project layout
 
@@ -18,6 +19,7 @@ oci_exporter/       Python package
 ai/                 AI collaboration context
   activation.txt    Thinking mode + priorities
   SELF_CHECKLIST.md Pre-change checklist
+  ROADMAP.md        Task backlog (fixes, features, status)
 context/            Contracts and invariants
   CONTRACT.md       I/O contract and system invariants
 tools/              CentralInfraCore signing toolchain
