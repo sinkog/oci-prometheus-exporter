@@ -1,0 +1,34 @@
+---
+metadata:
+  name: oci-prometheus-exporter
+  description: Prometheus exporter for Oracle Cloud Infrastructure metrics
+  version: 0.1.0
+  license: MIT
+  main_branch: main
+  owner: Gabor Zoltan Sinko
+  tags:
+    - oci
+    - prometheus
+    - exporter
+    - monitoring
+  createdBy:
+    name: Gabor Zoltan Sinko
+    email: gabor.sinko@paynance.hu
+  validatedBy:
+    name: TBD
+    version: TBD
+    checksum: TBD
+  build_timestamp: TBD
+  validity:
+    from: TBD
+    until: TBD
+  checksum: TBD
+  sign: TBD
+  buildHash: TBD
+
+compiler_settings:
+  component_name: oci-prometheus-exporter
+  vault_key_name: cic-my-sign-key
+  vault_cert_mount: cic-my-sign-key
+  vault_cert_secret_name: crt
+  vault_cert_secret_key: bar

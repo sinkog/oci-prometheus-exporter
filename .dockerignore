@@ -1,0 +1,12 @@
+.git
+.github
+tests/
+*.md
+*.toml
+*.yaml
+!config.example.yaml
+__pycache__
+*.pyc
+.venv
+dist/
+build/

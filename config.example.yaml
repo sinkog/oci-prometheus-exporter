@@ -1,0 +1,72 @@
+# OCI Prometheus Exporter — example configuration
+
+# One or more OCI compartment OCIDs to scrape.
+# Use the tenancy OCID to cover all resources.
+compartmentIds:
+  - "ocid1.tenancy.oc1..example"
+  # - "ocid1.compartment.oc1..example"   # additional compartments
+
+region: "eu-frankfurt-2"
+
+# Authentication type.
+#   InstancePrincipal  — uses the OCI node identity (recommended for Kubernetes)
+#   ApiKey             — reads ~/.oci/config (for local development)
+auth:
+  type: InstancePrincipal
+
+# How often to poll OCI Monitoring (seconds).
+# Rule of thumb: >= number of total metric queries across all namespaces × compartments.
+metricsPollingFrequencyInSeconds: 60
+
+# Optional: override the OCI Monitoring telemetry endpoint.
+# Needed for dedicated / sovereign cloud regions (OC2, OC3, OC19 …).
+# telemetryEndpoint: "https://telemetry.eu-frankfurt-2.oraclecloud.eu"
+
+namespaces:
+  - name: oci_computeagent
+    metrics:
+      - name: cpu_utilization
+        query: "CpuUtilization[1m].mean()"
+      - name: memory_utilization
+        query: "MemoryUtilization[1m].mean()"
+      - name: network_bytes_in
+        query: "NetworksBytesIn[1m].sum()"
+      - name: network_bytes_out
+        query: "NetworksBytesOut[1m].sum()"
+      - name: disk_bytes_read
+        query: "DiskBytesRead[1m].sum()"
+      - name: disk_bytes_written
+        query: "DiskBytesWritten[1m].sum()"
+
+  - name: oci_vcn
+    metrics:
+      - name: vnic_bytes_in
+        query: "VnicFromNetworkBytes[1m].sum()"
+      - name: vnic_bytes_out
+        query: "VnicToNetworkBytes[1m].sum()"
+      - name: vnic_packets_in
+        query: "VnicFromNetworkPackets[1m].sum()"
+      - name: vnic_packets_out
+        query: "VnicToNetworkPackets[1m].sum()"
+
+  - name: oci_lbaas
+    metrics:
+      - name: active_connections
+        query: "ActiveConnections[1m].mean()"
+      - name: bytes_processed
+        query: "BytesProcessed[1m].sum()"
+      - name: http_responses
+        query: "HttpResponses[1m].sum()"
+      - name: unhealthy_backends
+        query: "UnHealthyBackendServers[1m].mean()"
+
+  - name: oci_blockstore
+    metrics:
+      - name: volume_read_ops
+        query: "VolumeReadOps[1m].sum()"
+      - name: volume_write_ops
+        query: "VolumeWriteOps[1m].sum()"
+      - name: volume_read_throughput
+        query: "VolumeReadThroughput[1m].mean()"
+      - name: volume_write_throughput
+        query: "VolumeWriteThroughput[1m].mean()"
