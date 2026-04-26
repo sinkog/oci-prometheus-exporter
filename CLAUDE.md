@@ -40,12 +40,13 @@ pip install -e ".[dev]"
 ## Commands
 
 ```bash
-make check            # lint + test (CI judge)
-make lint             # ruff only
-make test             # pytest only
-make cov              # pytest with coverage report
-make run              # run locally (ApiKey auth, config.example.yaml)
-make docker-build     # build Docker image
+make check            # lint + test — hermetic, pinned Python (CI judge)
+make lint             # ruff only (builder container)
+make test             # pytest only (builder container)
+make cov              # pytest with coverage report (builder container)
+make cov-check        # fail if coverage < COVERAGE_MIN (default 80%)
+make run              # run locally — only target requiring local Python + OCI creds
+make docker-build     # build production Docker image
 make clean            # remove build artifacts
 ```
 

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-slim AS builder
+FROM python@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2 AS builder
 
 WORKDIR /build
 COPY pyproject.toml .
@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --prefix=/install \
     "pyyaml>=6.0"
 
 # ── runtime image ────────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
 
 RUN useradd -r -u 10001 -s /bin/false exporter
 
