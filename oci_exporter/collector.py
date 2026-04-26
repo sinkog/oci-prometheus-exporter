@@ -88,6 +88,10 @@ class Collector:
         self._client = build_client(cfg)
         self._last_seen: dict[tuple[str, str, str, str], float] = {}
 
+    @property
+    def polling_frequency(self) -> float:
+        return self._cfg.polling_frequency_seconds
+
     def poll(self) -> bool:
         """Run one full poll cycle. Returns True if no errors occurred."""
         cfg = self._cfg

@@ -23,11 +23,6 @@ def record_poll(success: bool) -> None:
         _consecutive_errors = 0 if success else _consecutive_errors + 1
 
 
-def _is_ready() -> bool:
-    with _lock:
-        return _consecutive_errors < _UNHEALTHY_THRESHOLD
-
-
 class _Handler(BaseHTTPRequestHandler):
     def log_message(self, *args) -> None:  # silence access log
         pass
@@ -44,11 +39,11 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path == "/healthz":
             self._send(200, b"ok")
         elif self.path == "/readyz":
-            if _is_ready():
+            with _lock:
+                errs = _consecutive_errors
+            if errs < _UNHEALTHY_THRESHOLD:
                 self._send(200, b"ok")
             else:
-                with _lock:
-                    errs = _consecutive_errors
                 self._send(503, f"unhealthy: {errs} consecutive poll errors\n".encode())
         elif self.path in ("/metrics", "/"):
             self._send(200, generate_latest(m.REGISTRY), CONTENT_TYPE_LATEST)

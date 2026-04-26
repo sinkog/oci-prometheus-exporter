@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 def _collector_loop(collector: Collector) -> None:
-    freq = collector._cfg.polling_frequency_seconds
+    freq = collector.polling_frequency
     while True:
         t0 = time.time()
         m.last_timestamp.set(t0)

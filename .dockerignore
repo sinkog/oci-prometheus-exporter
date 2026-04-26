@@ -1,12 +1,27 @@
-.git
-.github
-tests/
-*.md
-*.toml
-*.yaml
-!config.example.yaml
-__pycache__
-*.pyc
-.venv
+# ── version control & IDE ─────────────────────────────────────────────────────
+.git/
+.github/
+.idea/
+.claude/
+
+# ── Python build artifacts ────────────────────────────────────────────────────
+.venv/
 dist/
 build/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── project files not needed in image ─────────────────────────────────────────
+ai/
+context/
+tools/
+tests/
+*.md
+*.yaml
+*.toml
+!pyproject.toml

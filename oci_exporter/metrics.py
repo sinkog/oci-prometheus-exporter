@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from prometheus_client import CollectorRegistry, Counter, Gauge
@@ -35,6 +36,8 @@ errors_total = Counter(
     registry=REGISTRY,
 )
 
+log = logging.getLogger(__name__)
+
 _gauges: dict[tuple[str, str], Gauge] = {}
 
 
@@ -60,5 +63,8 @@ def remove_label(ns: str, metric: str, compartment_id: str, resource_id: str) ->
     if key in _gauges:
         try:
             _gauges[key].remove(compartment_id, resource_id)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.debug(
+                "remove_label %s/%s [%s %s]: %s",
+                ns, metric, compartment_id, resource_id, exc,
+            )

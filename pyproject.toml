@@ -35,10 +35,14 @@ target-version = "py310"
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["B008"]
 
+[tool.ruff.lint.isort]
+known-third-party = ["oci", "prometheus_client", "yaml", "pytest"]
+known-first-party = ["oci_exporter"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
 
 [tool.coverage.run]
 source = ["oci_exporter"]
-omit = ["tests/*"]
+omit = ["tests/*", "oci_exporter/__main__.py"]

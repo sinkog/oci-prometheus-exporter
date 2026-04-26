@@ -37,7 +37,7 @@ Copy `config.example.yaml` and adjust:
 
 ```yaml
 compartmentIds:
-  - "ocid1.tenancy.oc1..example"
+  - "ocid1.compartment.oc1..example"  # list compartments to scrape explicitly
 
 region: "eu-frankfurt-2"
 
@@ -74,14 +74,24 @@ docker run --rm \
 
 ### Kubernetes
 
-```bash
-kubectl apply -f k8s/monitoring/oci-exporter/
-```
+Deploy a `ConfigMap` with your `config.yaml`, a `Deployment` referencing the image, and a `Service` + `ServiceMonitor` for Prometheus scraping.
 
-Required Kubernetes resources (see `k8s/` in the consuming repo):
-- `ConfigMap` with `config.yaml`
-- `Deployment` with `imagePullSecrets` pointing to your OCI Container Registry
-- `Service` + `ServiceMonitor` for Prometheus scraping
+Minimal `Deployment` snippet:
+
+```yaml
+containers:
+  - name: oci-exporter
+    image: <your-registry>/oci-prometheus-exporter:latest
+    args: ["--config", "/etc/oci-exporter/config.yaml", "--port", "9090"]
+    volumeMounts:
+      - name: config
+        mountPath: /etc/oci-exporter
+        readOnly: true
+volumes:
+  - name: config
+    configMap:
+      name: oci-exporter-config
+```
 
 ### IAM (InstancePrincipal)
 
