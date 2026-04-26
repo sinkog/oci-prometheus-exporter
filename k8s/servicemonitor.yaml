@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: oci-exporter
+  namespace: monitoring
+  labels:
+    # Must match your Prometheus Operator's serviceMonitorSelector.
+    # For kube-prometheus-stack default: release: prometheus
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: oci-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s       # align with metricsPollingFrequencyInSeconds
+      scrapeTimeout: 30s

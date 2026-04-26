@@ -12,6 +12,8 @@ from oci_exporter.collector import (
     Collector,
     _query_with_retry,
     build_client,
+    generate_config,
+    validate_config,
 )
 from oci_exporter.config import AuthConfig, Config, MetricConfig, NamespaceConfig
 
@@ -308,3 +310,160 @@ class TestCleanupStale:
         with patch("oci_exporter.collector.m.remove_label") as mock_rm:
             collector._cleanup_stale(now)
         mock_rm.assert_not_called()
+
+
+# ── validate_config ───────────────────────────────────────────────────────────
+
+def _mock_list_metrics(names: list[str]):
+    """Return a mock for oci.pagination.list_call_get_all_results that yields metric names."""
+    items = []
+    for n in names:
+        item = MagicMock()
+        item.name = n
+        items.append(item)
+    resp = MagicMock()
+    resp.data = items
+    return MagicMock(return_value=resp)
+
+
+class TestValidateConfig:
+    def _client(self):
+        return MagicMock()
+
+    def test_all_metrics_found_returns_true(self, capsys):
+        cfg = _make_config()
+        client = self._client()
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results",
+            _mock_list_metrics(["cpu"]),
+        ):
+            ok = validate_config(cfg, client)
+        assert ok is True
+        out = capsys.readouterr().out
+        assert "[OK]" in out
+        assert "cpu" in out
+
+    def test_missing_metric_returns_false(self, capsys):
+        cfg = _make_config()
+        client = self._client()
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results",
+            _mock_list_metrics(["other_metric"]),
+        ):
+            ok = validate_config(cfg, client)
+        assert ok is False
+        out = capsys.readouterr().out
+        assert "[MISSING]" in out
+
+    def test_empty_namespace_warns_not_fails(self, capsys):
+        cfg = _make_config()
+        client = self._client()
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results",
+            _mock_list_metrics([]),
+        ):
+            ok = validate_config(cfg, client)
+        assert ok is True
+        out = capsys.readouterr().out
+        assert "[WARN]" in out
+
+    def test_service_error_returns_false(self, capsys):
+        from oci.exceptions import ServiceError
+
+        cfg = _make_config()
+        client = self._client()
+        err = ServiceError(403, "NotAuthorized", {}, "forbidden")
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results",
+            side_effect=err,
+        ):
+            ok = validate_config(cfg, client)
+        assert ok is False
+        out = capsys.readouterr().out
+        assert "[ERROR]" in out
+
+    def test_summary_line_printed(self, capsys):
+        cfg = _make_config()
+        client = self._client()
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results",
+            _mock_list_metrics(["cpu"]),
+        ):
+            validate_config(cfg, client)
+        out = capsys.readouterr().out
+        assert "Result:" in out
+
+
+# ── generate_config ───────────────────────────────────────────────────────────
+
+class TestGenerateConfig:
+    def _mock_discovery(self, ns_metrics: dict[str, list[str]]):
+        """Build a mock list_call_get_all_results that returns cross-namespace items."""
+        all_items = []
+        for ns, names in ns_metrics.items():
+            for metric_name in names:
+                item = MagicMock()
+                item.namespace = ns
+                item.name = metric_name
+                all_items.append(item)
+        resp = MagicMock()
+        resp.data = all_items
+        return MagicMock(return_value=resp)
+
+    def test_output_is_valid_yaml(self):
+        import yaml
+
+        cfg = _make_config()
+        client = MagicMock()
+        mock_fn = self._mock_discovery({"oci_computeagent": ["CpuUtilization"]})
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results", mock_fn
+        ):
+            result = generate_config(cfg, client)
+        parsed = yaml.safe_load(result)
+        assert isinstance(parsed, dict)
+        assert "namespaces" in parsed
+
+    def test_all_discovered_namespaces_present(self):
+        import yaml
+
+        cfg = _make_config()
+        client = MagicMock()
+        mock_fn = self._mock_discovery(
+            {"oci_vcn": ["VnicFromNetworkBytes"], "oci_blockstore": ["VolumeReadOps"]}
+        )
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results", mock_fn
+        ):
+            result = generate_config(cfg, client)
+        parsed = yaml.safe_load(result)
+        ns_names = [n["name"] for n in parsed["namespaces"]]
+        assert "oci_vcn" in ns_names
+        assert "oci_blockstore" in ns_names
+
+    def test_metric_query_uses_mean(self):
+        import yaml
+
+        cfg = _make_config()
+        client = MagicMock()
+        mock_fn = self._mock_discovery({"oci_vcn": ["VnicFromNetworkBytes"]})
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results", mock_fn
+        ):
+            result = generate_config(cfg, client)
+        parsed = yaml.safe_load(result)
+        ns = parsed["namespaces"][0]
+        assert ns["metrics"][0]["query"] == "VnicFromNetworkBytes[1m].mean()"
+
+    def test_compartment_ids_preserved(self):
+        import yaml
+
+        cfg = _make_config()
+        client = MagicMock()
+        mock_fn = self._mock_discovery({"oci_vcn": ["VnicFromNetworkBytes"]})
+        with patch(
+            "oci_exporter.collector.oci.pagination.list_call_get_all_results", mock_fn
+        ):
+            result = generate_config(cfg, client)
+        parsed = yaml.safe_load(result)
+        assert parsed["compartmentIds"] == ["ocid1.tenancy.oc1..test"]

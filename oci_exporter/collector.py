@@ -158,3 +158,86 @@ class Collector:
                 "Removed stale label: %s/%s compartment=%s… resource=%s",
                 ns, metric_name, compartment_id[:20], resource_id,
             )
+
+
+def generate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> str:
+    """Discover all metrics via list_metrics and return a complete config YAML."""
+    import collections
+
+    import yaml
+
+    ns_metrics: dict[str, set[str]] = collections.defaultdict(set)
+    for compartment_id in cfg.compartment_ids:
+        resp = oci.pagination.list_call_get_all_results(
+            client.list_metrics,
+            compartment_id,
+            oci.monitoring.models.ListMetricsDetails(),
+        )
+        for item in resp.data:
+            ns_metrics[item.namespace].add(item.name)
+
+    namespaces = [
+        {
+            "name": ns_name,
+            "metrics": [
+                {"name": metric, "query": f"{metric}[1m].mean()"}
+                for metric in sorted(ns_metrics[ns_name])
+            ],
+        }
+        for ns_name in sorted(ns_metrics)
+    ]
+
+    config: dict = {
+        "compartmentIds": list(cfg.compartment_ids),
+        "region": cfg.region,
+        "metricsPollingFrequencyInSeconds": cfg.polling_frequency_seconds,
+        "auth": {"type": cfg.auth.type},
+        "namespaces": namespaces,
+    }
+    if cfg.telemetry_endpoint:
+        config["telemetryEndpoint"] = cfg.telemetry_endpoint
+
+    return yaml.dump(config, default_flow_style=False, sort_keys=False)
+
+
+def validate_config(cfg: Config, client: oci.monitoring.MonitoringClient) -> bool:
+    """Check every configured namespace/metric against the OCI list_metrics API.
+
+    Returns True if all metrics are confirmed present (or namespace is empty).
+    Prints a human-readable report to stdout.
+    """
+    all_ok = True
+    total_ok = total_missing = total_warn = 0
+
+    for compartment_id in cfg.compartment_ids:
+        print(f"\nCompartment: {compartment_id}")
+        for ns_cfg in cfg.namespaces:
+            print(f"  Namespace: {ns_cfg.name}")
+            try:
+                details = oci.monitoring.models.ListMetricsDetails(namespace=ns_cfg.name)
+                resp = oci.pagination.list_call_get_all_results(
+                    client.list_metrics, compartment_id, details
+                )
+                available = {item.name for item in resp.data}
+            except oci.exceptions.ServiceError as exc:
+                print(f"    [ERROR]   cannot query namespace: {exc.message}")
+                all_ok = False
+                continue
+
+            if not available:
+                print("    [WARN]    namespace appears empty (no active resources?)")
+
+            for metric in ns_cfg.metrics:
+                if metric.name in available:
+                    print(f"    [OK]      {metric.name}")
+                    total_ok += 1
+                elif not available:
+                    print(f"    [WARN]    {metric.name} (namespace empty, cannot verify)")
+                    total_warn += 1
+                else:
+                    print(f"    [MISSING] {metric.name}")
+                    total_missing += 1
+                    all_ok = False
+
+    print(f"\nResult: {total_ok} OK, {total_missing} MISSING, {total_warn} WARN")
+    return all_ok

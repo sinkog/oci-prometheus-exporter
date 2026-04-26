@@ -3,6 +3,16 @@
 Prometheus exporter for [Oracle Cloud Infrastructure (OCI)](https://www.oracle.com/cloud/) metrics.
 Queries the [OCI Monitoring API](https://docs.oracle.com/en-us/iaas/api/#/en/monitoring/20180401/) and exposes the results as Prometheus gauges.
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/configuration.md](docs/configuration.md) | Full config.yaml reference — all fields, auth modes, rate limiting |
+| [docs/cli.md](docs/cli.md) | CLI flags — `--validate`, `--generate-config` |
+| [docs/metrics.md](docs/metrics.md) | HTTP endpoints, self-metrics, label structure |
+| [docs/oci-namespaces.md](docs/oci-namespaces.md) | OCI namespace/metric reference, provider-side vs agent-side, known gaps |
+| [docs/deployment.md](docs/deployment.md) | Kubernetes/OKE deployment, IAM setup, Docker |
+
 ## Features
 
 - Multi-compartment scraping

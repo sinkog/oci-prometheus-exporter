@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 import threading
 import time
 
 from . import metrics as m
 from . import server
-from .collector import Collector
+from .collector import Collector, build_client, generate_config, validate_config
 from .config import load
 
 logging.basicConfig(
@@ -58,9 +59,28 @@ def main() -> None:
         default=9090,
         help="HTTP listen port (default: 9090)",
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate config metrics against OCI list_metrics API, then exit",
+    )
+    parser.add_argument(
+        "--generate-config",
+        action="store_true",
+        help="Discover all OCI metrics and print a complete config.yaml, then exit",
+    )
     args = parser.parse_args()
 
     cfg = load(args.config)
+
+    if args.validate:
+        ok = validate_config(cfg, build_client(cfg))
+        sys.exit(0 if ok else 1)
+
+    if args.generate_config:
+        print(generate_config(cfg, build_client(cfg)), end="")
+        sys.exit(0)
+
     collector = Collector(cfg)
 
     threading.Thread(target=_collector_loop, args=(collector,), daemon=True).start()
