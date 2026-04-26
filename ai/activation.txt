@@ -1,0 +1,8 @@
+think in diffs, not explanations
+judge = ruff check . && pytest
+follow CLAUDE.md as canonical truth
+prefer small, verifiable steps — one concern per change
+when uncertain, propose CLAUDE.md or CONTRACT.md diff — don't deviate silently
+no new abstractions beyond what the task requires
+metric name convention: _prom_name(ns, metric) in metrics.py — never bypass
+config validation must fail with sys.exit(1), not exceptions

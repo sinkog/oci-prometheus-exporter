@@ -1,5 +1,11 @@
 # CLAUDE.md — oci-prometheus-exporter
 
+## AI collaboration
+
+- **`ai/activation.txt`** — thinking mode and priorities
+- **`context/CONTRACT.md`** — I/O contract and invariants (canonical truth)
+- **`ai/SELF_CHECKLIST.md`** — pre-change checklist
+
 ## Project layout
 
 ```
@@ -9,6 +15,11 @@ oci_exporter/       Python package
   metrics.py        Prometheus registry, gauge management, _prom_name()
   server.py         HTTP server: /metrics /healthz /readyz
   __main__.py       CLI entry point (--config, --port)
+ai/                 AI collaboration context
+  activation.txt    Thinking mode + priorities
+  SELF_CHECKLIST.md Pre-change checklist
+context/            Contracts and invariants
+  CONTRACT.md       I/O contract and system invariants
 tools/              CentralInfraCore signing toolchain
   git_hook_commit-msg.sh   Vault commit-signing hook (active via symlink)
   vault-sign-agent.sh      Start/stop local Vault signing server

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff check*)",
+      "Bash(ruff format*)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m oci_exporter*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git fetch*)",
+      "Bash(git add*)",
+      "Bash(find * -type f*)",
+      "Bash(grep *)"
+    ]
+  }
+}
