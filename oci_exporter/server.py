@@ -32,7 +32,9 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, *args) -> None:  # silence access log
         pass
 
-    def _send(self, code: int, body: bytes, content_type: str = "text/plain; charset=utf-8") -> None:
+    def _send(
+        self, code: int, body: bytes, content_type: str = "text/plain; charset=utf-8"
+    ) -> None:
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.end_headers()

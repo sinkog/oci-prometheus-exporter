@@ -122,7 +122,8 @@ class Collector:
                                 compartment_id=compartment_id,
                                 resource_id=resource_id,
                             ).set(val)
-                            self._last_seen[(ns_cfg.name, metric.name, compartment_id, resource_id)] = now
+                            key = (ns_cfg.name, metric.name, compartment_id, resource_id)
+                            self._last_seen[key] = now
                     except Exception as exc:
                         had_error = True
                         m.errors_total.labels(

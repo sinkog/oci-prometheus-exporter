@@ -40,11 +40,13 @@ pip install -e ".[dev]"
 ## Commands
 
 ```bash
-ruff check .          # lint
-pytest                # tests
-pytest --cov          # tests with coverage
-oci-exporter --config config.example.yaml   # run locally (ApiKey auth)
-docker build -t oci-prometheus-exporter:latest .
+make check            # lint + test (CI judge)
+make lint             # ruff only
+make test             # pytest only
+make cov              # pytest with coverage report
+make run              # run locally (ApiKey auth, config.example.yaml)
+make docker-build     # build Docker image
+make clean            # remove build artifacts
 ```
 
 ## Commit signing

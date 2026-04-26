@@ -8,9 +8,9 @@ import threading
 import time
 
 from . import metrics as m
+from . import server
 from .collector import Collector
 from .config import load
-from . import server
 
 logging.basicConfig(
     level=logging.INFO,

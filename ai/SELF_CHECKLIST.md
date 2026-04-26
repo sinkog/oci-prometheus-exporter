@@ -3,8 +3,7 @@
 Before proposing or finalising any change:
 
 ## Code quality
-- [ ] `ruff check .` passes with no errors
-- [ ] `pytest` passes (all tests green)
+- [ ] `make check` passes (lint + tests green)
 
 ## Conventions
 - [ ] New metric names go through `_prom_name()` — never construct gauge names inline

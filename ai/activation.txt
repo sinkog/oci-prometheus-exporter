@@ -1,5 +1,5 @@
 think in diffs, not explanations
-judge = ruff check . && pytest
+judge = make check
 follow CLAUDE.md as canonical truth
 prefer small, verifiable steps — one concern per change
 when uncertain, propose CLAUDE.md or CONTRACT.md diff — don't deviate silently

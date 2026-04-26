@@ -1,8 +1,9 @@
 """Tests for config loading and validation."""
 
 import textwrap
-import pytest
 from pathlib import Path
+
+import pytest
 
 from oci_exporter.config import load
 
